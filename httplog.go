@@ -7,7 +7,7 @@ import (
 )
 
 type Details struct {
-	Status, ContentLength                                      int
+	Status, ContentLength, RequestLength                       int
 	URL                                                        *url.URL
 	Method, Proto, Host, RemoteAddr, UserAgent, User, Referrer string
 	StartTime, EndTime                                         time.Time
@@ -41,20 +41,22 @@ func NewLogMux(m http.Handler, fn func(Details)) *LogMux {
 }
 
 func (l *LogMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var d Details
+	d := Details{
+		RemoteAddr:    r.RemoteAddr,
+		Proto:         r.Proto,
+		Method:        r.Method,
+		URL:           r.URL,
+		UserAgent:     r.UserAgent(),
+		Host:          r.Host,
+		Referer:       r.Referer(),
+		RequestLength: r.ContentLength,
+		Status:        200,
+	}
 
-	d.URL = r.URL
-	d.Method = r.Method
-	d.UserAgent = r.UserAgent()
-	d.Proto = r.Proto
-	d.Host = r.Host
-	d.RemoteAddr = r.RemoteAddr
-	d.Referer = r.Referer()
 	user, _, ok := r.BasicAuth()
 	if ok {
 		d.User = user
 	}
-	d.Status = 200
 
 	if pusher, ok := w.(http.Pusher); ok {
 		w = &wrapPusher{
