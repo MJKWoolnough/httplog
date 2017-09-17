@@ -2,15 +2,13 @@ package httplog
 
 import (
 	"net/http"
-	"net/url"
 	"time"
 )
 
 type Details struct {
-	Status, ContentLength, RequestLength                       int
-	URL                                                        *url.URL
-	Method, Proto, Host, RemoteAddr, UserAgent, User, Referrer string
-	StartTime, EndTime                                         time.Time
+	*http.Request
+	Status, ResponseLength int
+	StartTime, EndTime     time.Time
 }
 
 type wrapRW struct {
@@ -28,34 +26,22 @@ type wrapPusher struct {
 	http.Pusher
 }
 
-type LogMux struct {
+type logMux struct {
 	http.Handler
 	fn func(Details)
 }
 
-func NewLogMux(m http.Handler, fn func(Details)) *LogMux {
+func NewLogMux(m http.Handler, fn func(Details)) *logMux {
 	if m == nil {
 		m = http.DefaultServeMux
 	}
-	return &LogMux{Handler: m, fn: fn}
+	return &logMux{Handler: m, fn: fn}
 }
 
-func (l *LogMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	d := Details{
-		RemoteAddr:    r.RemoteAddr,
-		Proto:         r.Proto,
-		Method:        r.Method,
-		URL:           r.URL,
-		UserAgent:     r.UserAgent(),
-		Host:          r.Host,
-		Referer:       r.Referer(),
-		RequestLength: r.ContentLength,
-		Status:        200,
-	}
-
-	user, _, ok := r.BasicAuth()
-	if ok {
-		d.User = user
+		Request: r,
+		Status:  200,
 	}
 
 	if pusher, ok := w.(http.Pusher); ok {
@@ -63,7 +49,7 @@ func (l *LogMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			wrapRW{
 				w,
 				&d.Status,
-				&d.ContentLength,
+				&d.ResponseLength,
 			},
 			pusher,
 		}
@@ -71,7 +57,7 @@ func (l *LogMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w = &wrapRW{
 			w,
 			&d.Status,
-			&d.ContentLength,
+			&d.ResponseLength,
 		}
 	}
 
