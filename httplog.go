@@ -1,10 +1,16 @@
+// Package httplog is used to create wrappers around http.Handler's to gather
+// information about a request and its response.
 package httplog
 
 import (
+	"io"
 	"net/http"
+	"sync"
+	"text/template"
 	"time"
 )
 
+// Details is a collection of data about the request and response
 type Details struct {
 	*http.Request
 	Status, ResponseLength int
@@ -28,16 +34,24 @@ type wrapPusher struct {
 
 type logMux struct {
 	http.Handler
-	fn func(Details)
+	Logger
 }
 
-func NewLogMux(m http.Handler, fn func(Details)) *logMux {
+// Logger allows clients to specifiy how collected data is handled
+type Logger interface {
+	Log(d Details)
+}
+
+// NewLogMux wraps an existing http.Handler and collects data about the request
+// and response and passes it to a logger.
+func NewLogMux(m http.Handler, l Logger) http.Handler {
 	if m == nil {
 		m = http.DefaultServeMux
 	}
-	return &logMux{Handler: m, fn: fn}
+	return &logMux{Handler: m, Logger: l}
 }
 
+// ServeHTTP satisfies the http.Handler interface
 func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	d := Details{
 		Request: r,
@@ -65,5 +79,33 @@ func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	l.Handler.ServeHTTP(w, r)
 	d.EndTime = time.Now()
 
-	go l.fn(d)
+	go l.Logger.Log(d)
+}
+
+// WriteLogger is a Logger which formats log data to a given template and
+// writes it to a given io.Writer
+type WriteLogger struct {
+	mu       sync.Mutex
+	w        io.Writer
+	template *template.Template
+}
+
+// NewWriteLogger uses the given format as a template to write log data to the
+// given io.Writer
+func NewWriteLogger(w io.Writer, format string) (Logger, error) {
+	t, err := template.New("").Parse(format)
+	if err != nil {
+		return nil, err
+	}
+	return &WriterLogger{
+		w:        w,
+		template: t,
+	}, nil
+}
+
+// Log satisfies the Logger interface
+func (w *WriteLogger) Log(d Details) {
+	w.mu.Lock()
+	w.template.Execute(w.w, d)
+	w.mu.Unlock()
 }
