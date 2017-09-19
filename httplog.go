@@ -3,11 +3,16 @@
 package httplog
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"sync"
 	"text/template"
 	"time"
+)
+
+const (
+	DefaultFormat = "{{.RemoteAddr}} - {{.URL.User.Username}} - [{{.StartTime.Format \"02/01/2006:15:04:05 +0700\"}}] \"{{.Method}} {{.URL.RequestURI}} {{.Proto}}\" {{.Status}} {{.RequestLength}} {{.StartTime.Sub .EndTime}}"
 )
 
 // Details is a collection of data about the request and response
@@ -42,9 +47,9 @@ type Logger interface {
 	Log(d Details)
 }
 
-// NewLogMux wraps an existing http.Handler and collects data about the request
+// Wrap wraps an existing http.Handler and collects data about the request
 // and response and passes it to a logger.
-func NewLogMux(m http.Handler, l Logger) http.Handler {
+func Wrap(m http.Handler, l Logger) http.Handler {
 	if m == nil {
 		m = http.DefaultServeMux
 	}
@@ -93,11 +98,17 @@ type WriteLogger struct {
 // NewWriteLogger uses the given format as a template to write log data to the
 // given io.Writer
 func NewWriteLogger(w io.Writer, format string) (Logger, error) {
+	if format == "" {
+		return nil, errors.New("invalid format")
+	}
+	if format[len(format)-1] != '\n' {
+		format += "\n"
+	}
 	t, err := template.New("").Parse(format)
 	if err != nil {
 		return nil, err
 	}
-	return &WriterLogger{
+	return &WriteLogger{
 		w:        w,
 		template: t,
 	}, nil
