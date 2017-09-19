@@ -7,12 +7,18 @@ information about a request and its response.
 
 ## Usage
 
-#### func  NewLogMux
+```go
+const (
+	DefaultFormat = "{{.RemoteAddr}} - {{.URL.User.Username}} - [{{.StartTime.Format \"02/01/2006:15:04:05 +0700\"}}] \"{{.Method}} {{.URL.RequestURI}} {{.Proto}}\" {{.Status}} {{.RequestLength}} {{.StartTime.Sub .EndTime}}"
+)
+```
+
+#### func  Wrap
 
 ```go
-func NewLogMux(m http.Handler, l Logger) http.Handler
+func Wrap(m http.Handler, l Logger) http.Handler
 ```
-NewLogMux wraps an existing http.Handler and collects data about the request and
+Wrap wraps an existing http.Handler and collects data about the request and
 response and passes it to a logger.
 
 #### type Details
