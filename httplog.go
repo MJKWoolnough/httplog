@@ -56,6 +56,12 @@ func Wrap(m http.Handler, l Logger) http.Handler {
 	return &logMux{Handler: m, Logger: l}
 }
 
+var responsePool = sync.Pool{
+	New: func() interface{} {
+		return new(wrapPusher)
+	},
+}
+
 // ServeHTTP satisfies the http.Handler interface
 func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	d := Details{
@@ -63,26 +69,25 @@ func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Status:  200,
 	}
 
-	if pusher, ok := w.(http.Pusher); ok {
-		w = &wrapPusher{
-			wrapRW{
-				w,
-				&d.Status,
-				&d.ResponseLength,
-			},
-			pusher,
-		}
-	} else {
-		w = &wrapRW{
-			w,
-			&d.Status,
-			&d.ResponseLength,
-		}
-	}
+	rw := responsePool.Get().(*wrapPusher)
 
-	d.StartTime = time.Now()
-	l.Handler.ServeHTTP(w, r)
+	rw.wrapRW = wrapRW{
+		w,
+		&d.Status,
+		&d.ResponseLength,
+	}
+	if pusher, ok := w.(http.Pusher); ok {
+		rw.Pusher = pusher
+		d.StartTime = time.Now()
+		l.Handler.ServeHTTP(rw, r)
+	} else {
+		d.StartTime = time.Now()
+		l.Handler.ServeHTTP(&rw.wrapRW, r)
+	}
 	d.EndTime = time.Now()
+
+	*rw = wrapPusher{}
+	responsePool.Put(rw)
 
 	go l.Logger.Log(d)
 }
