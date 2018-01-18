@@ -9,6 +9,8 @@ import (
 	"sync"
 	"text/template"
 	"time"
+
+	"github.com/MJKWoolnough/httpwrap"
 )
 
 // DefaultLog is a simple template to output log data in something reminiscent
@@ -32,11 +34,6 @@ func (w *wrapRW) WriteHeader(n int) {
 	w.ResponseWriter.WriteHeader(n)
 }
 
-type wrapPusher struct {
-	wrapRW
-	http.Pusher
-}
-
 type logMux struct {
 	http.Handler
 	Logger
@@ -58,7 +55,7 @@ func Wrap(m http.Handler, l Logger) http.Handler {
 
 var responsePool = sync.Pool{
 	New: func() interface{} {
-		return new(wrapPusher)
+		return new(wrapRW)
 	},
 }
 
@@ -69,24 +66,21 @@ func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Status:  200,
 	}
 
-	rw := responsePool.Get().(*wrapPusher)
+	rw := responsePool.Get().(*wrapRW)
 
-	rw.wrapRW = wrapRW{
+	*rw = wrapRW{
 		w,
 		&d.Status,
 		&d.ResponseLength,
 	}
-	if pusher, ok := w.(http.Pusher); ok {
-		rw.Pusher = pusher
-		d.StartTime = time.Now()
-		l.Handler.ServeHTTP(rw, r)
-	} else {
-		d.StartTime = time.Now()
-		l.Handler.ServeHTTP(&rw.wrapRW, r)
-	}
+	d.StartTime = time.Now()
+	l.Handler.ServeHTTP(
+		httpwrap.Wrap(w, httpwrap.OverrideWriter(rw), httpwrap.OverrideHeaderWriter(rw)),
+		r,
+	)
 	d.EndTime = time.Now()
 
-	*rw = wrapPusher{}
+	*rw = wrapRW{}
 	responsePool.Put(rw)
 
 	go l.Logger.Log(d)
