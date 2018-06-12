@@ -1,6 +1,6 @@
 // Package httplog is used to create wrappers around http.Handler's to gather
 // information about a request and its response.
-package httplog
+package httplog // import "vimagination.zapto.org/httplog"
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/MJKWoolnough/httpwrap"
+	"vimagination.zapto.org/httpwrap"
 )
 
 // DefaultLog is a simple template to output log data in something reminiscent
