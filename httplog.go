@@ -13,7 +13,7 @@ import (
 	"vimagination.zapto.org/httpwrap"
 )
 
-// DefaultLog is a simple template to output log data in something reminiscent
+// DefaultFormat is a simple template to output log data in something reminiscent
 // on the Apache default format
 const DefaultFormat = "{{.RemoteAddr}} - {{.URL.User.Username}} - [{{.StartTime.Format \"02/01/2006:15:04:05 +0700\"}}] \"{{.Method}} {{.URL.RequestURI}} {{.Proto}}\" {{.Status}} {{.RequestLength}} {{.StartTime.Sub .EndTime}}"
 
