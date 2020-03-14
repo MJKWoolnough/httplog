@@ -1,6 +1,6 @@
 # httplog
 --
-    import "github.com/MJKWoolnough/httplog"
+    import "vimagination.zapto.org/httplog"
 
 Package httplog is used to create wrappers around http.Handler's to gather
 information about a request and its response.
@@ -10,8 +10,8 @@ information about a request and its response.
 ```go
 const DefaultFormat = "{{.RemoteAddr}} - {{.URL.User.Username}} - [{{.StartTime.Format \"02/01/2006:15:04:05 +0700\"}}] \"{{.Method}} {{.URL.RequestURI}} {{.Proto}}\" {{.Status}} {{.RequestLength}} {{.StartTime.Sub .EndTime}}"
 ```
-DefaultLog is a simple template to output log data in something reminiscent on
-the Apache default format
+DefaultFormat is a simple template to output log data in something reminiscent
+on the Apache default format
 
 #### func  Wrap
 
