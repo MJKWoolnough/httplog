@@ -11,7 +11,7 @@ information about a request and its response.
 const DefaultFormat = "{{.RemoteAddr}} - {{.URL.User.Username}} - [{{.StartTime.Format \"02/01/2006:15:04:05 +0700\"}}] \"{{.Method}} {{.URL.RequestURI}} {{.Proto}}\" {{.Status}} {{.RequestLength}} {{.StartTime.Sub .EndTime}}"
 ```
 DefaultFormat is a simple template to output log data in something reminiscent
-on the Apache default format
+on the Apache default format.
 
 #### func  Wrap
 
@@ -31,7 +31,7 @@ type Details struct {
 }
 ```
 
-Details is a collection of data about the request and response
+Details is a collection of data about the request and response.
 
 #### type Logger
 
@@ -41,7 +41,7 @@ type Logger interface {
 }
 ```
 
-Logger allows clients to specifiy how collected data is handled
+Logger allows clients to specify how collected data is handled.
 
 #### func  NewWriteLogger
 
@@ -49,7 +49,7 @@ Logger allows clients to specifiy how collected data is handled
 func NewWriteLogger(w io.Writer, format string) (Logger, error)
 ```
 NewWriteLogger uses the given format as a template to write log data to the
-given io.Writer
+given io.Writer.
 
 #### type WriteLogger
 
@@ -59,11 +59,11 @@ type WriteLogger struct {
 ```
 
 WriteLogger is a Logger which formats log data to a given template and writes it
-to a given io.Writer
+to a given io.Writer.
 
 #### func (*WriteLogger) Log
 
 ```go
 func (w *WriteLogger) Log(d Details)
 ```
-Log satisfies the Logger interface
+Log satisfies the Logger interface.
