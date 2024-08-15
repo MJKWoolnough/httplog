@@ -14,10 +14,10 @@ import (
 )
 
 // DefaultFormat is a simple template to output log data in something reminiscent
-// on the Apache default format
+// on the Apache default format.
 const DefaultFormat = "{{.RemoteAddr}} - {{.URL.User.Username}} - [{{.StartTime.Format \"02/01/2006:15:04:05 +0700\"}}] \"{{.Method}} {{.URL.RequestURI}} {{.Proto}}\" {{.Status}} {{.RequestLength}} {{.StartTime.Sub .EndTime}}"
 
-// Details is a collection of data about the request and response
+// Details is a collection of data about the request and response.
 type Details struct {
 	*http.Request
 	Status, ResponseLength int
@@ -31,6 +31,7 @@ type wrapRW struct {
 
 func (w *wrapRW) WriteHeader(n int) {
 	*w.status = n
+
 	w.ResponseWriter.WriteHeader(n)
 }
 
@@ -39,7 +40,7 @@ type logMux struct {
 	Logger
 }
 
-// Logger allows clients to specifiy how collected data is handled
+// Logger allows clients to specify how collected data is handled.
 type Logger interface {
 	Log(d Details)
 }
@@ -50,6 +51,7 @@ func Wrap(m http.Handler, l Logger) http.Handler {
 	if m == nil {
 		m = http.DefaultServeMux
 	}
+
 	return &logMux{Handler: m, Logger: l}
 }
 
@@ -59,7 +61,7 @@ var responsePool = sync.Pool{
 	},
 }
 
-// ServeHTTP satisfies the http.Handler interface
+// ServeHTTP satisfies the http.Handler interface.
 func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	d := Details{
 		Request: r,
@@ -74,20 +76,23 @@ func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		&d.ResponseLength,
 	}
 	d.StartTime = time.Now()
+
 	l.Handler.ServeHTTP(
 		httpwrap.Wrap(w, httpwrap.OverrideWriter(rw), httpwrap.OverrideHeaderWriter(rw)),
 		r,
 	)
+
 	d.EndTime = time.Now()
 
 	*rw = wrapRW{}
+
 	responsePool.Put(rw)
 
 	go l.Logger.Log(d)
 }
 
 // WriteLogger is a Logger which formats log data to a given template and
-// writes it to a given io.Writer
+// writes it to a given io.Writer.
 type WriteLogger struct {
 	mu       sync.Mutex
 	w        io.Writer
@@ -95,25 +100,28 @@ type WriteLogger struct {
 }
 
 // NewWriteLogger uses the given format as a template to write log data to the
-// given io.Writer
+// given io.Writer.
 func NewWriteLogger(w io.Writer, format string) (Logger, error) {
 	if format == "" {
 		return nil, errors.New("invalid format")
 	}
+
 	if format[len(format)-1] != '\n' {
 		format += "\n"
 	}
+
 	t, err := template.New("").Parse(format)
 	if err != nil {
 		return nil, err
 	}
+
 	return &WriteLogger{
 		w:        w,
 		template: t,
 	}, nil
 }
 
-// Log satisfies the Logger interface
+// Log satisfies the Logger interface.
 func (w *WriteLogger) Log(d Details) {
 	w.mu.Lock()
 	w.template.Execute(w.w, d)
