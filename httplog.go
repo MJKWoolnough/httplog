@@ -83,7 +83,6 @@ func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 
 	d.EndTime = time.Now()
-
 	*rw = wrapRW{}
 
 	responsePool.Put(rw)
