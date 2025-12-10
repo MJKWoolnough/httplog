@@ -67,9 +67,7 @@ func (l *logMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Request: r,
 		Status:  200,
 	}
-
 	rw := responsePool.Get().(*wrapRW)
-
 	*rw = wrapRW{
 		w,
 		&d.Status,
